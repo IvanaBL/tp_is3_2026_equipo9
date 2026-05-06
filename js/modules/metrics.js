@@ -37,6 +37,39 @@ export const getMessageCountByUser = (messages) => {
     })).sort((a, b) => b.count - a.count);
 };
 
-// --- Espacio para futuras métricas de tiempo ---
-// Agrupación por hora (Pending)
-// Agrupación por día (Pending)
+// --- métricas de tiempo ---
+/**
+ * Cantidad de mensajes por hora del día.
+ * Agrupa los mensajes por hora del día (0 a 23) y cuenta cuántos hay en cada franja.
+ * @param {Array<Object>} messages - Array de mensajes proveniente del parser.
+ * @returns {Array<Object>} Array de 24 elementos ordenados de 0 a 23: { hora: number, count: number }
+ */
+export const getMessageCountByHour = (messages) => {
+    // Inicializamos las 24 horas en 0 para garantizar que todas estén presentes en el resultado
+    const hourMap = {};
+    for (let h = 0; h < 24; h++) {
+        hourMap[h] = 0;
+    }
+ 
+    messages.forEach(msg => {
+        
+        const hora = msg.timestamp.getHours();
+        hourMap[hora] += 1;
+    });
+ 
+    return Array.from({ length: 24 }, (_, h) => ({
+        hora: h,
+        count: hourMap[h]
+    }));
+};
+ 
+/**
+ * Hora con mayor actividad del chat.
+ * Devuelve la franja horaria con más mensajes. Depende de getMessageCountByHour.
+ * @param {Array<Object>} messages - Array de mensajes proveniente del parser.
+ * @returns {Object} El elemento con mayor actividad: { hora: number, count: number }
+ */
+export const getPeakHour = (messages) => {
+    const actividadPorHora = getMessageCountByHour(messages);
+    return actividadPorHora.reduce((pico, actual) => actual.count > pico.count ? actual : pico);
+};
