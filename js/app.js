@@ -29,7 +29,7 @@
 
 // 1. IMPORTACIÓN: funciones
 import { parsearArchivo } from './modules/parser.js';
-import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour } from './modules/metrics.js'; // Nueva
+import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday } from './modules/metrics.js'; // Nueva
 import { validarArchivoChat } from './modules/validator.js'; // Nueva importación
 
 // 2. Referencias a elementos del DOM
@@ -38,6 +38,8 @@ const statusDisplay = document.getElementById('status');
 const ulParticipantes = document.getElementById('list-participantes'); // Nueva
 const tablaBody = document.querySelector('#tabla-ranking tbody'); // Nueva
 const tbodyHoras = document.getElementById('tbody-horas'); // Nueva referencia para métricas de horas
+const tbodyTop5Dias = document.getElementById('tbody-top5-dias'); // Nueva referencia para top 5 días
+const tbodyDiasSemana = document.getElementById('tbody-dias-semana'); // Nueva referencia para actividad por día de la semana
 /**
  * Evento que se dispara al seleccionar un archivo.
  * Utiliza FileReader para leer el .txt de forma asíncrona.
@@ -66,10 +68,14 @@ fileInput.addEventListener('change', async (e) => {
             const rankingUsuarios = getMessageCountByUser(mensajesProcesados);
             const actividadPorHora = getMessageCountByHour(mensajesProcesados);         
             const horaPico = getPeakHour(mensajesProcesados);  
+            const top5Dias = getTop5DaysByDate(mensajesProcesados);                     
+            const actividadPorDiaSemana = getMessageCountByWeekday(mensajesProcesados); 
+            const diaPico = getPeakWeekday(mensajesProcesados);  
 
             // FASE 3: Presentación de datos (Renderizado en el navegador)
             renderUserMetrics(listaParticipantes, rankingUsuarios);
             renderHourMetrics(actividadPorHora, horaPico);
+            renderDayMetrics(top5Dias, actividadPorDiaSemana, diaPico);
 
             // FASE 4: Debugging - Verificación de estructura de datos en consola
             console.log("=== DATOS ESTRUCTURADOS (POJO) ===");
@@ -85,12 +91,20 @@ fileInput.addEventListener('change', async (e) => {
             console.table(actividadPorHora);
             console.log("Hora pico:", horaPico);
 
+            console.log("=== ACT 12: TOP 5 DÍAS CON MÁS MENSAJES ===");
+            console.table(top5Dias);
+ 
+            console.log("=== ACT 12: ACTIVIDAD POR DÍA DE SEMANA ===");
+            console.table(actividadPorDiaSemana);
+            console.log("Día pico:", diaPico);
+
             // Actualización del estado visual para el usuario
             statusDisplay.innerText = `¡Éxito! Se detectaron ${listaParticipantes.length} usuarios y ${mensajesProcesados.length} mensajes.`;
         } catch (error) {
             // 1. Limpieza total de la interfaz
             renderUserMetrics([], []);
             renderHourMetrics([], null);
+            renderDayMetrics([], [], null);
 
             // 2. Reseteo del input para permitir re-intentos
             fileInput.value = "";
@@ -156,6 +170,37 @@ const renderHourMetrics = (actividadPorHora, horaPico) => {
  
         const horaFormateada = `${String(item.hora).padStart(2, '0')}:00 - ${String(item.hora).padStart(2, '0')}:59`;
         row.insertCell(0).textContent = esPico ? `${horaFormateada}` : horaFormateada;
+        row.insertCell(1).textContent = item.count;
+ 
+        if (esPico) row.style.fontWeight = 'bold';
+    });
+};
+
+/**
+ * @function renderDayMetrics
+ * @param {Array<Object>} top5Dias - Objetos con estructura { fecha: string, count: number }.
+ * @param {Array<Object>} actividadPorDiaSemana - Objetos con estructura { diaSemana: string, count: number }.
+ * @param {Object|null} diaPico - El objeto de día pico devuelto por getPeakWeekday().
+ * @description Renderiza las dos tablas de metricas de días. Recibe el día pico desde metrics.js y lo usa para destacar la fila correspondiente.
+ */
+const renderDayMetrics = (top5Dias, actividadPorDiaSemana, diaPico) => {
+    tbodyTop5Dias.innerHTML = '';
+    tbodyDiasSemana.innerHTML = '';
+ 
+    // --- Top 5 fechas  ---
+    top5Dias.forEach((item, index) => {
+        const row = tbodyTop5Dias.insertRow();
+        row.insertCell(0).textContent = item.fecha;
+        row.insertCell(1).textContent = item.count;
+    });
+ 
+    // --- Actividad por día de semana ---
+    actividadPorDiaSemana.forEach(item => {
+        const row = tbodyDiasSemana.insertRow();
+        
+        const esPico = diaPico && item.diaSemana === diaPico.diaSemana;
+ 
+        row.insertCell(0).textContent = esPico ? `${item.diaSemana}` : item.diaSemana;
         row.insertCell(1).textContent = item.count;
  
         if (esPico) row.style.fontWeight = 'bold';
