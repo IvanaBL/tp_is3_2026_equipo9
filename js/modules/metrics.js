@@ -134,3 +134,76 @@ export const getPeakWeekday = (messages) => {
     const actividadPorDiaSemana = getMessageCountByWeekday(messages);
     return actividadPorDiaSemana.reduce((pico, actual) => actual.count > pico.count ? actual : pico);
 };
+// ============================================================
+// NUEVAS FUNCIONES PARA M5: WORD CLOUD
+// ============================================================
+
+/**
+ * Limpia y tokeniza el texto de un mensaje según las reglas
+ * @param {string} texto - Texto original del mensaje
+ * @param {Set} stopwordsSet - Set con las stopwords
+ * @returns {Array<string>} Lista de palabras válidas
+ */
+const procesarPalabras = (texto, stopwordsSet) => {
+    // Paso 1: Limpiar contenido (menciones, URLs)
+    let limpio = texto;
+    limpio = limpio.replace(/@\S+/g, '');           // Eliminar menciones
+    limpio = limpio.replace(/https?:\/\/\S+/g, ''); // Eliminar URLs
+    
+    // Paso 2: Convertir a minúsculas
+    limpio = limpio.toLowerCase();
+    
+    // Paso 3: Eliminar signos de puntuación
+    limpio = limpio.replace(/[.,;:!?¿¡"'()\[\]]/g, ' ');
+    
+    // Paso 4: Separar por espacios y filtrar
+    const palabras = limpio.split(/\s+/).filter(palabra => {
+        // Eliminar palabras vacías
+        if (palabra.length === 0) return false;
+        // Eliminar palabras de longitud menor a 2 caracteres
+        if (palabra.length < 2) return false;
+        // Eliminar stopwords
+        if (stopwordsSet.has(palabra)) return false;
+        return true;
+    });
+    
+    return palabras;
+};
+
+/**
+ * Calcula la frecuencia de palabras para la nube de palabras
+ * @param {Array<Object>} messages - Array de mensajes del parser
+ * @param {Array<string>} stopwordsList - Lista de stopwords
+ * @returns {Array<Object>} Top 50 palabras: { word: string, count: number }
+ */
+export const getWordCloudData = (messages, stopwordsList = []) => {
+    // Convertir stopwords a Set para búsqueda rápida
+    const stopwordsSet = new Set(stopwordsList);
+    const wordMap = new Map();
+
+    messages.forEach(msg => {
+        // Excluir mensajes sin remitente (sistema)
+        if (!msg.remitente) return;
+        
+        // Excluir multimedia
+        if (msg.esMultimedia) return;
+        
+        // Excluir mensajes eliminados
+        if (msg.esEliminado) return;
+        
+        // Procesar palabras del contenido
+        const palabras = procesarPalabras(msg.contenido, stopwordsSet);
+        
+        palabras.forEach(palabra => {
+            wordMap.set(palabra, (wordMap.get(palabra) || 0) + 1);
+        });
+    });
+
+    // Convertir a array, ordenar y tomar top 50
+    const top50 = Array.from(wordMap.entries())
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 50);
+
+    return top50;
+};

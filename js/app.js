@@ -29,7 +29,7 @@
 
 // 1. IMPORTACIÓN: funciones
 import { parsearArchivo } from './modules/parser.js';
-import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday } from './modules/metrics.js'; // Nueva
+import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday, getWordCloudData } from './modules/metrics.js';
 import { validarArchivoChat } from './modules/validator.js'; // Nueva importación
 
 // 2. Referencias a elementos del DOM
@@ -71,13 +71,39 @@ fileInput.addEventListener('change', async (e) => {
             const top5Dias = getTop5DaysByDate(mensajesProcesados);                     
             const actividadPorDiaSemana = getMessageCountByWeekday(mensajesProcesados); 
             const diaPico = getPeakWeekday(mensajesProcesados);  
+			
+			//FASE 4:  NUEVO: M5 - Word Cloud
+			const stopwordsList = [
+				'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo',
+				'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en',
+				'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin',
+				'sobre', 'tras', 'que', 'y', 'e', 'ni', 'o', 'u', 'pero', 'sino',
+				'aunque', 'porque', 'pues', 'si', 'como', 'cuando', 'donde', 'mientras',
+				'yo', 'tu', 'vos', 'él', 'ella', 'nosotros', 'nosotras', 'ustedes',
+				'ellos', 'ellas', 'me', 'te', 'se', 'nos', 'le', 'les', 'mi', 'mis',
+				'tus', 'su', 'sus', 'es', 'era', 'son', 'eran', 'fue', 'fueron', 'ser',
+				'estar', 'estoy', 'estás', 'está', 'estamos', 'están', 'estaba', 'estaban',
+				'ha', 'han', 'he', 'haber', 'hay', 'tiene', 'tienen', 'tengo', 'tener',
+				'no', 'si', 'sí', 'también', 'tampoco', 'ya', 'muy', 'más', 'menos',
+				'ok', 'dale', 'bueno', 'nada', 'todo', 'todos', 'una', 'cada', 'mucho',
+				'otro', 'mismo', 'tipo', 'hacer', 'hago', 'hace', 'hacen', 'poder',
+				'puedo', 'puede', 'pueden', 'querer', 'quiero', 'quiere'
+			];
 
+			const wordCloudData = getWordCloudData(mensajesProcesados, stopwordsList);
+			const wordCloudContainer = document.getElementById('word-cloud');
+            
+			
+			
             // FASE 3: Presentación de datos (Renderizado en el navegador)
             renderUserMetrics(listaParticipantes, rankingUsuarios);
             renderHourMetrics(actividadPorHora, horaPico);
             renderDayMetrics(top5Dias, actividadPorDiaSemana, diaPico);
-
-            // FASE 4: Debugging - Verificación de estructura de datos en consola
+			
+			//FASE 4: STOPWORDS 
+			renderWordCloud(wordCloudData);
+            
+			// FASE 4: Debugging - Verificación de estructura de datos en consola
             console.log("=== DATOS ESTRUCTURADOS (POJO) ===");
             console.log("Mensajes totales:", mensajesProcesados.length);
 
@@ -96,7 +122,11 @@ fileInput.addEventListener('change', async (e) => {
  
             console.log("=== ACT 12: ACTIVIDAD POR DÍA DE SEMANA ===");
             console.table(actividadPorDiaSemana);
-            console.log("Día pico:", diaPico);
+            console.log("Día pico:", diaPico);	
+			
+			console.log("=== ACT 14: STOPWORDS ===");
+            console.table(wordCloudData);	
+			
 
             // Actualización del estado visual para el usuario
             statusDisplay.innerText = `¡Éxito! Se detectaron ${listaParticipantes.length} usuarios y ${mensajesProcesados.length} mensajes.`;
@@ -175,7 +205,6 @@ const renderHourMetrics = (actividadPorHora, horaPico) => {
         if (esPico) row.style.fontWeight = 'bold';
     });
 };
-
 /**
  * @function renderDayMetrics
  * @param {Array<Object>} top5Dias - Objetos con estructura { fecha: string, count: number }.
@@ -204,5 +233,47 @@ const renderDayMetrics = (top5Dias, actividadPorDiaSemana, diaPico) => {
         row.insertCell(1).textContent = item.count;
  
         if (esPico) row.style.fontWeight = 'bold';
+    });
+};
+//FUNCIÓN renderWordCloud ⬇️⬇️⬇️
+
+/**
+ * @function renderWordCloud
+ * @param {Array<Object>} wordCloudData - Array con { word, count }
+ */
+const renderWordCloud = (wordCloudData) => {
+    const container = document.getElementById('word-cloud');
+    if (!container) {
+        console.warn('No se encontró el contenedor #word-cloud');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    if (wordCloudData.length === 0) {
+        container.innerHTML = '<p>No hay palabras para mostrar</p>';
+        return;
+    }
+    
+    // Encontrar max count para escalar tamaños
+    const maxCount = Math.max(...wordCloudData.map(w => w.count));
+    
+    wordCloudData.forEach(item => {
+        const span = document.createElement('span');
+        span.textContent = item.word;
+        span.className = 'word-cloud-item';
+        
+        // Tamaño entre 12px y 40px según frecuencia
+        const minSize = 12;
+        const maxSize = 40;
+        const size = minSize + (item.count / maxCount) * (maxSize - minSize);
+        span.style.fontSize = `${size}px`;
+        span.style.margin = '5px';
+        span.style.display = 'inline-block';
+        
+        // Título con el conteo exacto
+        span.title = `${item.word}: ${item.count} veces`;
+        
+        container.appendChild(span);
     });
 };
