@@ -18,6 +18,15 @@
  * 5. EXTENSIBILIDAD:
  *    - Nuevos campos de texto: Modificar 'parser.js'.
  *    - Nuevos cálculos/filtros: Modificar 'metrics.js'.
+ * 
+ * 6. CAPA DE RED Y PERSISTENCIA (API):
+ *    - Actividad 16 & 17: Centralizadas en 'api.js'. Manejan la conexión asíncrona 
+ *    inicial (simulada) y la serialización de los POJOs procesados a formato JSON.
+ *    - Infraestructura Futura: 'api.js' ya incluye el CRUD completo (POST, GET, PUT, 
+ *    DELETE) bajo arquitectura REST. 
+ *    - Regla de Arquitectura: Ningún script de la interfaz debe realizar peticiones 
+ *    'fetch' directas; toda comunicación con el exterior se debe canalizar 
+ *    importando los métodos de 'api.js'.
  * ============================================================
  */
 
@@ -30,7 +39,8 @@
 // 1. IMPORTACIÓN: funciones
 import { parsearArchivo } from './modules/parser.js';
 import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday, getWordCloudData } from './modules/metrics.js';
-import { validarArchivoChat } from './modules/validator.js'; // Nueva importación
+import { validarArchivoChat } from './modules/validator.js';
+import { connectToBackend, convertPojoToJson } from './modules/api.js';
 
 // 2. Referencias a elementos del DOM
 const fileInput = document.getElementById('chatFile');
@@ -40,6 +50,10 @@ const tablaBody = document.querySelector('#tabla-ranking tbody'); // Nueva
 const tbodyHoras = document.getElementById('tbody-horas'); // Nueva referencia para métricas de horas
 const tbodyTop5Dias = document.getElementById('tbody-top5-dias'); // Nueva referencia para top 5 días
 const tbodyDiasSemana = document.getElementById('tbody-dias-semana'); // Nueva referencia para actividad por día de la semana
+
+// Variable global o de control para almacenar si el Backend está disponible
+let backendDisponible = false;
+
 /**
  * Evento que se dispara al seleccionar un archivo.
  * Utiliza FileReader para leer el .txt de forma asíncrona.
@@ -66,44 +80,44 @@ fileInput.addEventListener('change', async (e) => {
             // FASE 2: Procesamiento estadístico (Cálculo de métricas Act 9 y 10))
             const listaParticipantes = getParticipants(mensajesProcesados);
             const rankingUsuarios = getMessageCountByUser(mensajesProcesados);
-            const actividadPorHora = getMessageCountByHour(mensajesProcesados);         
-            const horaPico = getPeakHour(mensajesProcesados);  
-            const top5Dias = getTop5DaysByDate(mensajesProcesados);                     
-            const actividadPorDiaSemana = getMessageCountByWeekday(mensajesProcesados); 
-            const diaPico = getPeakWeekday(mensajesProcesados);  
-			
-			//FASE 4:  NUEVO: M5 - Word Cloud
-			const stopwordsList = [
-				'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo',
-				'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en',
-				'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin',
-				'sobre', 'tras', 'que', 'y', 'e', 'ni', 'o', 'u', 'pero', 'sino',
-				'aunque', 'porque', 'pues', 'si', 'como', 'cuando', 'donde', 'mientras',
-				'yo', 'tu', 'vos', 'él', 'ella', 'nosotros', 'nosotras', 'ustedes',
-				'ellos', 'ellas', 'me', 'te', 'se', 'nos', 'le', 'les', 'mi', 'mis',
-				'tus', 'su', 'sus', 'es', 'era', 'son', 'eran', 'fue', 'fueron', 'ser',
-				'estar', 'estoy', 'estás', 'está', 'estamos', 'están', 'estaba', 'estaban',
-				'ha', 'han', 'he', 'haber', 'hay', 'tiene', 'tienen', 'tengo', 'tener',
-				'no', 'si', 'sí', 'también', 'tampoco', 'ya', 'muy', 'más', 'menos',
-				'ok', 'dale', 'bueno', 'nada', 'todo', 'todos', 'una', 'cada', 'mucho',
-				'otro', 'mismo', 'tipo', 'hacer', 'hago', 'hace', 'hacen', 'poder',
-				'puedo', 'puede', 'pueden', 'querer', 'quiero', 'quiere'
-			];
+            const actividadPorHora = getMessageCountByHour(mensajesProcesados);
+            const horaPico = getPeakHour(mensajesProcesados);
+            const top5Dias = getTop5DaysByDate(mensajesProcesados);
+            const actividadPorDiaSemana = getMessageCountByWeekday(mensajesProcesados);
+            const diaPico = getPeakWeekday(mensajesProcesados);
 
-			const wordCloudData = getWordCloudData(mensajesProcesados, stopwordsList);
-			const wordCloudContainer = document.getElementById('word-cloud');
-            
-			
-			
+            //FASE 4:  NUEVO: M5 - Word Cloud
+            const stopwordsList = [
+                'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo',
+                'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en',
+                'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin',
+                'sobre', 'tras', 'que', 'y', 'e', 'ni', 'o', 'u', 'pero', 'sino',
+                'aunque', 'porque', 'pues', 'si', 'como', 'cuando', 'donde', 'mientras',
+                'yo', 'tu', 'vos', 'él', 'ella', 'nosotros', 'nosotras', 'ustedes',
+                'ellos', 'ellas', 'me', 'te', 'se', 'nos', 'le', 'les', 'mi', 'mis',
+                'tus', 'su', 'sus', 'es', 'era', 'son', 'eran', 'fue', 'fueron', 'ser',
+                'estar', 'estoy', 'estás', 'está', 'estamos', 'están', 'estaba', 'estaban',
+                'ha', 'han', 'he', 'haber', 'hay', 'tiene', 'tienen', 'tengo', 'tener',
+                'no', 'si', 'sí', 'también', 'tampoco', 'ya', 'muy', 'más', 'menos',
+                'ok', 'dale', 'bueno', 'nada', 'todo', 'todos', 'una', 'cada', 'mucho',
+                'otro', 'mismo', 'tipo', 'hacer', 'hago', 'hace', 'hacen', 'poder',
+                'puedo', 'puede', 'pueden', 'querer', 'quiero', 'quiere'
+            ];
+
+            const wordCloudData = getWordCloudData(mensajesProcesados, stopwordsList);
+            const wordCloudContainer = document.getElementById('word-cloud');
+
+
+
             // FASE 3: Presentación de datos (Renderizado en el navegador)
             renderUserMetrics(listaParticipantes, rankingUsuarios);
             renderHourMetrics(actividadPorHora, horaPico);
             renderDayMetrics(top5Dias, actividadPorDiaSemana, diaPico);
-			
-			//FASE 4: STOPWORDS 
-			renderWordCloud(wordCloudData);
-            
-			// FASE 4: Debugging - Verificación de estructura de datos en consola
+
+            //FASE 4: STOPWORDS 
+            renderWordCloud(wordCloudData);
+
+            // FASE 4: Debugging - Verificación de estructura de datos en consola
             console.log("=== DATOS ESTRUCTURADOS (POJO) ===");
             console.log("Mensajes totales:", mensajesProcesados.length);
 
@@ -119,14 +133,21 @@ fileInput.addEventListener('change', async (e) => {
 
             console.log("=== ACT 12: TOP 5 DÍAS CON MÁS MENSAJES ===");
             console.table(top5Dias);
- 
+
             console.log("=== ACT 12: ACTIVIDAD POR DÍA DE SEMANA ===");
             console.table(actividadPorDiaSemana);
-            console.log("Día pico:", diaPico);	
-			
-			console.log("=== ACT 14: STOPWORDS ===");
-            console.table(wordCloudData);	
-			
+            console.log("Día pico:", diaPico);
+
+            console.log("=== ACT 14: STOPWORDS ===");
+            console.table(wordCloudData);
+
+            console.log("=== ACT 17: MANEJO DE JSON (SERIALIZACIÓN) ==="); // ACTIVIDAD 17: Conversión real y dinámica de POJOs a JSON
+            const resultadoJsonString = convertPojoToJson(mensajesProcesados);
+
+            if (resultadoJsonString !== null) {
+                console.log(resultadoJsonString); // Imprime el JSON completo y formateado
+                console.log("Tipo de dato final generado:", typeof resultadoJsonString);
+            }
 
             // Actualización del estado visual para el usuario
             statusDisplay.innerText = `¡Éxito! Se detectaron ${listaParticipantes.length} usuarios y ${mensajesProcesados.length} mensajes.`;
@@ -190,18 +211,18 @@ const renderUserMetrics = (participantes, ranking) => {
  */
 const renderHourMetrics = (actividadPorHora, horaPico) => {
     tbodyHoras.innerHTML = '';
- 
+
     if (actividadPorHora.length === 0) return;
- 
+
     actividadPorHora.forEach(item => {
         const row = tbodyHoras.insertRow();
-        
+
         const esPico = horaPico && item.hora === horaPico.hora;
- 
+
         const horaFormateada = `${String(item.hora).padStart(2, '0')}:00 - ${String(item.hora).padStart(2, '0')}:59`;
         row.insertCell(0).textContent = esPico ? `${horaFormateada}` : horaFormateada;
         row.insertCell(1).textContent = item.count;
- 
+
         if (esPico) row.style.fontWeight = 'bold';
     });
 };
@@ -215,23 +236,23 @@ const renderHourMetrics = (actividadPorHora, horaPico) => {
 const renderDayMetrics = (top5Dias, actividadPorDiaSemana, diaPico) => {
     tbodyTop5Dias.innerHTML = '';
     tbodyDiasSemana.innerHTML = '';
- 
+
     // --- Top 5 fechas  ---
     top5Dias.forEach((item, index) => {
         const row = tbodyTop5Dias.insertRow();
         row.insertCell(0).textContent = item.fecha;
         row.insertCell(1).textContent = item.count;
     });
- 
+
     // --- Actividad por día de semana ---
     actividadPorDiaSemana.forEach(item => {
         const row = tbodyDiasSemana.insertRow();
-        
+
         const esPico = diaPico && item.diaSemana === diaPico.diaSemana;
- 
+
         row.insertCell(0).textContent = esPico ? `${item.diaSemana}` : item.diaSemana;
         row.insertCell(1).textContent = item.count;
- 
+
         if (esPico) row.style.fontWeight = 'bold';
     });
 };
@@ -247,22 +268,22 @@ const renderWordCloud = (wordCloudData) => {
         console.warn('No se encontró el contenedor #word-cloud');
         return;
     }
-    
+
     container.innerHTML = '';
-    
+
     if (wordCloudData.length === 0) {
         container.innerHTML = '<p>No hay palabras para mostrar</p>';
         return;
     }
-    
+
     // Encontrar max count para escalar tamaños
     const maxCount = Math.max(...wordCloudData.map(w => w.count));
-    
+
     wordCloudData.forEach(item => {
         const span = document.createElement('span');
         span.textContent = item.word;
         span.className = 'word-cloud-item';
-        
+
         // Tamaño entre 12px y 40px según frecuencia
         const minSize = 12;
         const maxSize = 40;
@@ -270,10 +291,29 @@ const renderWordCloud = (wordCloudData) => {
         span.style.fontSize = `${size}px`;
         span.style.margin = '5px';
         span.style.display = 'inline-block';
-        
+
         // Título con el conteo exacto
         span.title = `${item.word}: ${item.count} veces`;
-        
+
         container.appendChild(span);
     });
 };
+
+/**
+ * SECUENCIA DE INICIO AUTOMÁTICO (ACTIVIDAD 16)
+ * Se ejecuta apenas carga el navegador para verificar la salud del backend.
+ */
+const initApplication = async () => {
+    console.log("[SISTEMA] Verificando entorno de red...");
+    const response = await connectToBackend();
+
+    if (response !== null) {
+        backendDisponible = true;
+        console.log("[SISTEMA - READY] Servidor activo. El sistema está listo para recibir el archivo .txt.");
+    } else {
+        console.warn("[SISTEMA - ADVERTENCIA] No se pudo conectar con el servidor simulado. Las funciones locales de análisis funcionarán pero el backend está offline.");
+    }
+};
+
+// Arrancamos el control de la Actividad 16 al iniciar la página
+document.addEventListener('DOMContentLoaded', initApplication);

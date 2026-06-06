@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "text": "Hola, este es un mensaje de prueba para verificar la conexion.",
+    "user": "Diego",
+    "timestamp": 1717623600000
+  },
+  {
+    "id": 2,
+    "text": "Estructura de arquitectura modular lista.",
+    "user": "Arquitecto",
+    "timestamp": 1717623660000
+  }
+]
