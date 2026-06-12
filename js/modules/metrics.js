@@ -207,3 +207,36 @@ export const getWordCloudData = (messages, stopwordsList = []) => {
 
     return top50;
 };
+
+
+export const getEmojiRanking = (messages) => {
+    const emojiMap = new Map();
+
+    // Detecta emojis Unicode
+    const emojiRegex = /\p{Extended_Pictographic}/gu;
+
+    messages.forEach(msg => {
+        const emojis = msg.contenido.match(emojiRegex);
+
+        if (!emojis) return;
+
+        emojis.forEach(emoji => {
+            emojiMap.set(
+                emoji,
+                (emojiMap.get(emoji) || 0) + 1
+            );
+        });
+    });
+
+    return Array.from(emojiMap.entries())
+        .map(([emoji, count]) => ({ emoji, count }))
+        .sort((a, b) => b.count - a.count);
+};
+
+export const getTopEmoji = (messages) => {
+    const ranking = getEmojiRanking(messages);
+
+    return ranking.length > 0
+        ? ranking[0]
+        : null;
+};
