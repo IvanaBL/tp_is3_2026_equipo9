@@ -29,7 +29,7 @@
 
 // 1. IMPORTACIÓN: funciones
 import { parsearArchivo } from './modules/parser.js';
-import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday, getWordCloudData } from './modules/metrics.js';
+import { getParticipants, getMessageCountByUser, getMessageCountByHour, getPeakHour, getTop5DaysByDate, getMessageCountByWeekday, getPeakWeekday, getWordCloudData, getEmojiRanking, getTopEmoji } from './modules/metrics.js';
 import { validarArchivoChat } from './modules/validator.js'; // Nueva importación
 
 // 2. Referencias a elementos del DOM
@@ -40,6 +40,12 @@ const tablaBody = document.querySelector('#tabla-ranking tbody'); // Nueva
 const tbodyHoras = document.getElementById('tbody-horas'); // Nueva referencia para métricas de horas
 const tbodyTop5Dias = document.getElementById('tbody-top5-dias'); // Nueva referencia para top 5 días
 const tbodyDiasSemana = document.getElementById('tbody-dias-semana'); // Nueva referencia para actividad por día de la semana
+const tbodyEmojis = document.getElementById('tbody-emojis');
+const emojiTopDiv = document.getElementById('emoji-top');
+///GRAFICOS
+let chartHoras = null;
+let chartDias = null;
+
 /**
  * Evento que se dispara al seleccionar un archivo.
  * Utiliza FileReader para leer el .txt de forma asíncrona.
@@ -71,7 +77,9 @@ fileInput.addEventListener('change', async (e) => {
             const top5Dias = getTop5DaysByDate(mensajesProcesados);                     
             const actividadPorDiaSemana = getMessageCountByWeekday(mensajesProcesados); 
             const diaPico = getPeakWeekday(mensajesProcesados);  
-			
+			renderHourChart(actividadPorHora);
+            renderWeekdayChart(actividadPorDiaSemana);
+
 			//FASE 4:  NUEVO: M5 - Word Cloud
 			const stopwordsList = [
 				'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo',
@@ -92,6 +100,8 @@ fileInput.addEventListener('change', async (e) => {
 
 			const wordCloudData = getWordCloudData(mensajesProcesados, stopwordsList);
 			const wordCloudContainer = document.getElementById('word-cloud');
+            const emojiRanking = getEmojiRanking(mensajesProcesados);
+            const emojiTop = getTopEmoji(mensajesProcesados);
             
 			
 			
@@ -99,7 +109,8 @@ fileInput.addEventListener('change', async (e) => {
             renderUserMetrics(listaParticipantes, rankingUsuarios);
             renderHourMetrics(actividadPorHora, horaPico);
             renderDayMetrics(top5Dias, actividadPorDiaSemana, diaPico);
-			
+			 renderEmojiMetrics(emojiRanking,emojiTop);
+
 			//FASE 4: STOPWORDS 
 			renderWordCloud(wordCloudData);
             
@@ -126,6 +137,9 @@ fileInput.addEventListener('change', async (e) => {
 			
 			console.log("=== ACT 14: STOPWORDS ===");
             console.table(wordCloudData);	
+
+            console.log("=== RANKING EMOJIS ===");
+            console.table(emojiRanking);
 			
 
             // Actualización del estado visual para el usuario
@@ -275,5 +289,99 @@ const renderWordCloud = (wordCloudData) => {
         span.title = `${item.word}: ${item.count} veces`;
         
         container.appendChild(span);
+    });
+};
+
+const renderEmojiMetrics = (emojiRanking,emojiTop) => {
+    tbodyEmojis.innerHTML = '';
+    if (!emojiRanking.length) {
+        emojiTopDiv.innerHTML =
+            '<p>No se detectaron emojis.</p>';
+        return;
+    }
+
+
+    emojiRanking.forEach(item => {
+        const row = tbodyEmojis.insertRow();
+
+        row.insertCell(0).textContent =
+            item.emoji;
+
+        row.insertCell(1).textContent =
+            item.count;
+
+        if (item.emoji === emojiTop.emoji) {
+            row.style.fontWeight = 'bold';
+        }
+    });
+};
+
+
+
+const renderHourChart = (actividadPorHora) => {
+
+    const ctx = document
+        .getElementById('chartHoras')
+        .getContext('2d');
+
+    if (chartHoras) {
+        chartHoras.destroy();
+    }
+
+    chartHoras = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: actividadPorHora.map(h =>
+                `${String(h.hora).padStart(2, '0')}:00`
+            ),
+            datasets: [{
+                label: 'Mensajes',
+                data: actividadPorHora.map(h => h.count)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Cantidad de mensajes por hora'
+                }
+            }
+        }
+    });
+};
+
+const renderWeekdayChart = (actividadPorDiaSemana) => {
+
+    const ctx = document
+        .getElementById('chartDias')
+        .getContext('2d');
+
+    if (chartDias) {
+        chartDias.destroy();
+    }
+
+    chartDias = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: actividadPorDiaSemana.map(
+                d => d.diaSemana
+            ),
+            datasets: [{
+                label: 'Mensajes',
+                data: actividadPorDiaSemana.map(
+                    d => d.count
+                )
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Cantidad de mensajes por día'
+                }
+            }
+        }
     });
 };
