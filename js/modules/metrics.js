@@ -155,8 +155,9 @@ const procesarPalabras = (texto, stopwordsSet) => {
     
     // Paso 3: Eliminar signos de puntuación
     limpio = limpio.replace(/[.,;:!?¿¡"'()\[\]]/g, ' ');
-    
-    // Paso 4: Separar por espacios y filtrar
+    //Paso 4: Eliminar emojis
+    limpio = limpio.replace(/\p{Extended_Pictographic}/gu, ' ');
+    // Paso 5: Separar por espacios y filtrar
     const palabras = limpio.split(/\s+/).filter(palabra => {
         // Eliminar palabras vacías
         if (palabra.length === 0) return false;
