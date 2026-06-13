@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Analizador de Chat - Grupo 9</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
@@ -11,18 +14,24 @@
     </header>
 
     <main class="container">
-        <section class="upload-area">
+         <div class="upload-card">
             <input type="file" id="chatFile" accept=".txt">
-        </section>
+            <label for="chatFile">
+                <span>📄</span>
+                <h3>Cargar chat de WhatsApp</h3>
+                <p>Seleccioná un archivo .txt</p>
+            </label>
+        </div>
+        <p></p>
 
         <div id="status">Esperando archivo...</div>
 
         <section id="results-area" style="margin-top: 30px;">
             <div id="user-metrics">
-                <h3>Participantes Detectados</h3>
+                <h3>🧑‍🦰Participantes Detectados</h3>
                 <ul id="list-participantes"></ul>
 
-                <h3>Ranking de Mensajes</h3>
+                <h3>👩‍🦰Ranking de Mensajes</h3>
                 <table id="tabla-ranking" border="1" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
@@ -36,7 +45,7 @@
             </div>
             <!-- HORAS CON MÁS MENSAJES -->
             <div id="hour-metrics" style="margin-top: 20px;">
-                <h3>Franja Horaria con Mayor Actividad</h3>
+                <h3>⏳Franja Horaria con Mayor Actividad</h3>
                 <table id="tabla-horas" border="1" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
@@ -48,9 +57,16 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Gráfico por Hora -->
+            <div class="card">
+                <h3>📊Mensajes por Hora</h3>
+                    <canvas id="chartHoras"></canvas>
+            </div>
+
             <!-- DÍAS CON MÁS MENSAJES -->
             <div id="day-metrics" style="margin-top: 20px;">
-                <h3>Top 5 Días con Más Mensajes</h3>
+                <h3>📅Top 5 Días con Más Mensajes</h3>
                 <table id="tabla-top5-dias" border="1" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
@@ -62,7 +78,7 @@
                     </tbody>
                 </table>
  
-                <h3 style="margin-top: 20px;">Actividad por Día de la Semana</h3>
+                <h3 style="margin-top: 20px;">📅Actividad por Día de la Semana</h3>
                 <table id="tabla-dias-semana" border="1" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
@@ -74,6 +90,26 @@
                     </tbody>
                 </table>
             </div>
+
+        <!-- Gráfico por Día -->
+           <div class="card">
+            <h3>📊Mensajes por Día de la Semana</h3>
+            <canvas id="chartDias"></canvas>
+            </div>
+            <div id="emoji-metrics">
+                    <h3>😄Ranking de Emojis</h3>
+                    <div id="emoji-top"></div>
+                        <table border="1" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Emoji</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                        <tbody id="tbody-emojis"></tbody>
+                        </table>
+            </div>
+
 			<!-- Word Cloud -->
 			<div class="card">
 				<h3>☁ Nube de palabras</h3>
@@ -85,5 +121,6 @@
     </main>
 
     <script type="module" src="js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
