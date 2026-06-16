@@ -1,0 +1,60 @@
+# Universidad Nacional de Lanús (UNLa)
+## Departamento de Desarrollo Productivo y Tecnológico
+### Licenciatura en Sistemas - Ingeniería de Software 3 (2026)
+
+---
+
+# Analizador de Chats de WhatsApp - Grupo 9
+
+Un sistema web robusto y desacoplado diseñado para procesar de forma local y segura archivos de texto plano (.txt) exportados de chats de WhatsApp, transformándolos en un dashboard interactivo con métricas estadísticas y visualizaciones gráficas.
+
+---
+
+## Integrantes del Equipo 9
+* Noelia Lezcano
+* Diego Aguirre
+* Ivana Leiva
+* Agustín Luengo
+
+---
+
+## Decisiones Técnicas y Arquitectura
+
+Para este proyecto se optó por un enfoque moderno y nativo enfocado en la modularidad y el rendimiento:
+
+* **Lenguaje Base:** JavaScript Vanilla (JS puro, ES6+), garantizando agilidad sin la sobrecarga de frameworks pesados de renderizado.
+* **Arquitectura Modular (ES6 Modules):** La lógica de negocio está completamente desacoplada mediante un pipeline lineal (import/export):
+    Input (.txt) -> validator.js -> parser.js -> metrics.js -> app.js (DOM)
+* **Orquestación Centralizada:** El archivo app.js actúa como el controlador principal, aislando la manipulación del DOM (HTML5/CSS3 con tipografía Montserrat) de las funciones de cómputo matemático y parsing.
+* **Capa de Red y Persistencia (API REST):** El archivo api.js incluye una arquitectura defensiva con soporte CRUD completo (GET, POST, PUT, DELETE) y manejo de asincronismo mediante Promesas para simular latencia de red real. El sistema realiza un proceso de serialización dinámica convirtiendo los POJOs (Plain Old JavaScript Objects) de la memoria a una cadena JSON estandarizada para su portabilidad futura.
+* **Framework de Gráficos:** Integración de Chart.js mediante CDN para la renderización dinámica de datos en componentes canvas.
+
+---
+
+## Funcionalidades y Métricas Incluidas
+
+* **Validación Defensiva:** Control estricto de extensión de archivo, control de nulidad y verificación de estructura mínima del chat.
+* **Parser Inteligente:** Lectura asíncrona mediante la API FileReader, procesamiento con expresiones regulares (Regex) y soporte avanzado para mensajes multilínea.
+* **Métricas de Usuarios:** Identificación única de participantes y ranking de mensajes interactivos.
+* **Métricas Temporales:** Detección automática de la franja horaria pico de actividad y análisis por días de la semana.
+* **Análisis de Contenido:**
+    * Ranking estadístico y filtrado de los Emojis más utilizados.
+    * Nube de Palabras (Word Cloud) interactiva con escalado dinámico de fuentes en base a frecuencias, procesada mediante una lista personalizada de Stopwords (palabras vacías) para limpiar el ruido del texto.
+
+---
+
+## Cómo Levantar el Proyecto Localmente
+
+Al ser una aplicación basada en arquitectura modular nativa de JavaScript, se requiere su ejecución en un entorno web local para evitar restricciones de CORS del navegador al cargar módulos locales.
+
+### Opción 1: Con VS Code (Recomendado)
+1. Instalar la extensión Live Server de VS Code.
+2. Abrir la carpeta del proyecto en el editor.
+3. Hacer clic derecho sobre el archivo index.html y seleccionar "Open with Live Server".
+4. La aplicación se abrirá automáticamente en el navegador en la dirección http://127.0.0.1:5500.
+
+### Opción 2: Usando Python (Consola)
+Si se dispone de Python instalado, posicionarse con la terminal en la raíz del proyecto y ejecutar:
+```bash
+# Python 3.x
+python -m http.server 8000
