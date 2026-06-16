@@ -1,0 +1,14 @@
+Elegimos el lenguaje JavaScript en base a conocimiento previo, donde ahorramos de instalar entornos más complejos (como Java) 
+y no lidiar con dependencias más pesadas. 
+
+En base a las indicaciones del proyecto, JavaScript nos permitía el manejo de visualización en HTML por consola del navegador,
+permitiéndonos poder ver el proyecto sin ninguna otra extensión. 
+
+No utilizamos frameworks pesados para mantener la aplicación liviana. Sin embargo, el uso se optó por la utilización de Chart.js (sugerido por Agustín Luengo) 
+para la renderización de gráficos y algunas herramientas básicas en el Frontend.
+
+El parseo se implementó con una lectura asincrónica con la API FileReader para cargar el archivo en memoria. 
+El parseo se realiza línea por línea mediante patrones de búsquedas (explicado por Diego Aguirre).
+
+Decidimos que el programa mostrase directamente los resultados en ventana de navegador web (frecuencias (días), usuarios, nube de palabras, gráficos) 
+para que las acciones se realizaran internamente sin sobrecargar la consulta una vez el archivo fuera cargado.
